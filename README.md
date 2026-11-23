@@ -2,7 +2,9 @@
 
 Production-grade Node.js Express REST API connected to an **AWS RDS PostgreSQL** database (Tier 3) and serving API requests routed via **AWS CloudFront** from a React SPA (Tier 1).
 
-See the full [3-Tier Architecture Guide](../README.md) for complete cloud infrastructure details.
+- **Production Health Endpoint:** `https://app.ucmcmcm.fun/health`
+- **Production API Endpoint:** `https://app.ucmcmcm.fun/api/tasks`
+- **Architecture Guide:** See [3-Tier Architecture Guide](../README.md) for complete cloud infrastructure details.
 
 ## 🚀 Local Run
 ```bash
