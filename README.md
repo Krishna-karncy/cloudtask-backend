@@ -150,12 +150,19 @@ pm2 startup
 
 ---
 
-### Step 5: Configure Nginx Reverse Proxy
+### Step 5: Configure Nginx Reverse Proxy & Origin Cloaking
+To prevent malicious internet actors from directly pinging or attacking your EC2 public IP, configure **Origin Cloaking** using a secret handshake header (`X-Origin-Verify`):
+
 Edit `/etc/nginx/sites-available/default`:
 ```nginx
 server {
     listen 80 default_server;
     server_name _;
+
+    # Origin Cloaking: Reject direct IP access that bypasses CloudFront
+    if ($http_x_origin_verify != "CloudTaskSecure2026!OriginToken") {
+        return 403 "Direct IP access is forbidden. Please use the official domain.";
+    }
 
     location / {
         proxy_pass http://127.0.0.1:5000;
@@ -176,10 +183,51 @@ sudo nginx -t && sudo systemctl reload nginx
 ### Step 6: Route Traffic through CloudFront & Custom Domain
 In AWS CloudFront:
 1. Add an Origin for your EC2 instance (`Port 80, HTTP only`).
-2. Add Path Behaviors:
+2. In Origin settings, add a Custom Header:
+   - **Header Name:** `X-Origin-Verify`
+   - **Header Value:** `CloudTaskSecure2026!OriginToken`
+3. Add Path Behaviors:
    - `/api/*` ➔ Routed to EC2 with `CachingDisabled`.
    - `/health` ➔ Routed to EC2 with `CachingDisabled`.
-3. Custom Domain **`app.ucmcmcm.fun`** routes requests to CloudFront via Google Cloud DNS, and CloudFront securely terminates HTTPS using an AWS ACM certificate (`us-east-1`).
+4. Custom Domain **`app.ucmcmcm.fun`** routes requests to CloudFront via Google Cloud DNS, and CloudFront securely terminates HTTPS using an AWS ACM certificate (`us-east-1`).
+
+---
+
+## 🌐 Dedicated Backend Domain Roadmap (`api.ucmcmcm.fun`)
+
+To give third-party integrations (webhooks like Stripe, mobile apps, partner developers) a clean, dedicated API domain while keeping the EC2 instance completely cloaked:
+
+```text
+[ Third Parties / Mobile Apps / Webhooks ]
+                   │
+                   ▼ (https://api.ucmcmcm.fun)
+       [ Google Cloud DNS (CNAME: api) ]
+                   │
+                   ▼ (HTTPS Edge Termination - ACM us-east-1)
+       [ AWS CloudFront API Distribution ]
+       - Default Behavior (/*) ➔ EC2 (CachingDisabled)
+       - Custom Header: X-Origin-Verify: CloudTaskSecure2026!OriginToken
+                   │
+                   ▼ (HTTP Port 80 - Validated Secret)
+            [ AWS EC2 Ubuntu Nginx ]
+                   │
+                   ▼ (Port 5000)
+            [ Node.js Express API ]
+```
+
+### Steps to Activate in Google Cloud DNS (When Admin is Available):
+1. **Request Certificate in AWS ACM (`us-east-1`):**
+   - Domain: `api.ucmcmcm.fun` (or wildcard `*.ucmcmcm.fun`).
+   - Method: **DNS Validation**.
+2. **Add Validation CNAME in Google Cloud DNS:**
+   - Name: `_xxxx...api.ucmcmcm.fun.` ➔ Target: `_xxxx.acm-validations.aws.`
+3. **Create Dedicated CloudFront API Distribution:**
+   - Origin: EC2 Public IP (`Port 80, HTTP only`).
+   - Custom Header: `X-Origin-Verify: CloudTaskSecure2026!OriginToken`.
+   - Default Behavior (`/*`): Allowed Methods `GET..DELETE`, Cache Policy `CachingDisabled`.
+   - Alternate Domain (CNAME): `api.ucmcmcm.fun` + attach ACM certificate.
+4. **Add Routing CNAME in Google Cloud DNS:**
+   - Name: `api` ➔ Target: `<NEW_CLOUDFRONT_DOMAIN>.cloudfront.net.`
 
 ---
 
