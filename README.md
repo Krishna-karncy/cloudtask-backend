@@ -251,3 +251,4 @@ To give third-party integrations (webhooks like Stripe, mobile apps, partner dev
 | **`502 Bad Gateway`** | Node.js process crashed or stopped. | Run `pm2 status` and inspect logs using `pm2 logs cloudtask-api`. |
 | **`no pg_hba.conf entry ... no encryption`** | AWS RDS requires SSL connections. | Ensure `pg.Pool` configuration includes `ssl: { rejectUnauthorized: false }`. |
 | **API requests blocked in browser** | Mixed content (HTTP calls from HTTPS site). | Route `/api/*` through CloudFront so API and frontend share the custom HTTPS domain. |
+| **`504 Gateway Timeout` on `/api/*`** | EC2 stopped/restarted and dynamic IP changed. | Attach an **AWS Elastic IP** to the EC2 instance so its IP remains static permanently. |
