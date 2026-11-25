@@ -231,6 +231,23 @@ To give third-party integrations (webhooks like Stripe, mobile apps, partner dev
 
 ---
 
+## ⚡ Automated CI/CD Pipeline (GitHub Actions)
+
+This backend repository deploys automatically on every push to `main` via `.github/workflows/deploy.yml`:
+* **Trigger:** Push to `main` or manual trigger via GitHub Actions UI.
+* **Runner:** `ubuntu-latest`.
+* **Action:** `appleboy/ssh-action@v1.0.3` using GitHub Secrets (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`).
+* **Zero-Downtime Deployment Command:**
+  ```bash
+  cd ~/cloudtask-backend
+  git pull origin main
+  npm install --omit=dev
+  pm2 reload cloudtask-api --update-env
+  ```
+* **Status Verification:** The workflow outputs `pm2 status` and completes in ~20-30 seconds.
+
+---
+
 ## 📡 Live API Endpoints
 
 | Method | Endpoint | Description |
