@@ -231,9 +231,12 @@ To give third-party integrations (webhooks like Stripe, mobile apps, partner dev
 
 ---
 
-## ⚡ Automated CI/CD Pipeline (GitHub Actions)
+## ⚡ Automated CI/CD Pipelines
 
-This backend repository deploys automatically on every push to `main` via `.github/workflows/deploy.yml`:
+This backend repository supports both **GitHub Actions** (active in production) and **AWS CodeDeploy**:
+
+### Method 1: GitHub Actions (Active Production Pipeline)
+Deploys automatically on every push to `main` via `.github/workflows/deploy.yml`:
 * **Trigger:** Push to `main` or manual trigger via GitHub Actions UI.
 * **Runner:** `ubuntu-latest`.
 * **Action:** `appleboy/ssh-action@v1.0.3` using GitHub Secrets (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`).
@@ -245,6 +248,18 @@ This backend repository deploys automatically on every push to `main` via `.gith
   pm2 reload cloudtask-api --update-env
   ```
 * **Status Verification:** The workflow outputs `pm2 status` and completes in ~20-30 seconds.
+
+### Method 2: AWS CodeDeploy Architecture (`appspec.yml`)
+For AWS-native deployments without open SSH ports:
+* **Configuration:** `appspec.yml` and `scripts/` directory.
+* **Agent:** AWS CodeDeploy Agent running on Ubuntu 24.04 LTS EC2.
+* **Lifecycle Hooks:**
+  1. `BeforeInstall` (`scripts/before_install.sh`): Safely backs up the production `.env` file containing database credentials to `/home/ubuntu/.env.backup`.
+  2. `AfterInstall` (`scripts/after_install.sh`): Restores `.env` into the release directory and executes `npm install --omit=dev`.
+  3. `ApplicationStart` (`scripts/start_server.sh`): Zero-downtime process reload via `pm2 reload cloudtask-api --update-env`.
+  4. `ValidateService` (`scripts/validate_service.sh`): Queries `http://localhost:5000/health`. If health check fails, CodeDeploy automatically rolls back to the previous stable release.
+* **Ubuntu 24.04 Compatibility Fix:** The standard CodeDeploy deb package requires patching the Debian control file for Ruby 3.3 via `dpkg-deb -R`, adjusting dependencies to `ruby3.3 | ruby`, and repacking with `dpkg-deb -b`.
+* **Note on AWS Account Tiers:** AWS CodeDeploy on new/free accounts requires complete billing and identity plan verification to unlock console application creation.
 
 ---
 
