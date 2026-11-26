@@ -261,6 +261,27 @@ For AWS-native deployments without open SSH ports:
 * **Ubuntu 24.04 Compatibility Fix:** The standard CodeDeploy deb package requires patching the Debian control file for Ruby 3.3 via `dpkg-deb -R`, adjusting dependencies to `ruby3.3 | ruby`, and repacking with `dpkg-deb -b`.
 * **Note on AWS Account Tiers:** AWS CodeDeploy on new/free accounts requires complete billing and identity plan verification to unlock console application creation.
 
+### Method 3: GitLab CI/CD for Backend
+In GitLab CI/CD, the backend deploys differently from the frontend:
+* **The Difference:** Frontend deploys static files via AWS CLI to S3, whereas Backend targets a Linux virtual machine (EC2) running Node.js and PM2.
+* **Approach A (SSH Runner):** The GitLab runner executes inside an `alpine` Docker container, sets up an `ssh-agent` with the private `.pem` key stored in GitLab CI/CD Variables (`$EC2_SSH_KEY`), and commands EC2 over SSH:
+  ```yaml
+  deploy_backend:
+    stage: deploy
+    image: alpine:latest
+    before_script:
+      - apk add --no-cache openssh-client
+      - eval $(ssh-agent -s)
+      - echo "$EC2_SSH_KEY" | tr -d '\r' | ssh-add -
+      - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+      - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+    script:
+      - ssh $EC2_USER@$EC2_HOST "cd ~/cloudtask-backend && git pull origin main && npm install --omit=dev && pm2 reload cloudtask-api --update-env"
+    rules:
+      - if: $CI_COMMIT_BRANCH == "main"
+  ```
+* **Approach B (Self-Hosted GitLab Runner on EC2):** Install the `gitlab-runner` service directly on the EC2 instance. The job executes natively on the VM shell with zero open SSH ports needed.
+
 ---
 
 ## 📡 Live API Endpoints
