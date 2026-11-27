@@ -282,6 +282,17 @@ In GitLab CI/CD, the backend deploys differently from the frontend:
   ```
 * **Approach B (Self-Hosted GitLab Runner on EC2):** Install the `gitlab-runner` service directly on the EC2 instance. The job executes natively on the VM shell with zero open SSH ports needed.
 
+### Method 4: Jenkins for Backend (`Jenkinsfile`)
+- **Configuration:** `Jenkinsfile` in repository root.
+- **Engine:** Declarative Pipeline running on self-hosted Jenkins.
+- **Stages:**
+  1. `Checkout`: Pulls backend code from GitHub.
+  2. `Deploy to EC2`: Connects via SSH (`ssh -i key.pem ubuntu@EC2_HOST`) and triggers zero-downtime reload:
+     ```bash
+     cd ~/cloudtask-backend && git pull origin main && npm install --omit=dev && pm2 reload cloudtask-api --update-env
+     ```
+  3. `Verify Health`: Asserts service health endpoint returns HTTP 200 (`curl -f http://EC2_HOST/health`).
+
 ---
 
 ## 📡 Live API Endpoints
