@@ -5,5 +5,5 @@ if [ -f /home/ubuntu/.env.backup ]; then
 fi
 
 cd /home/ubuntu/cloudtask-backend
-# Install production dependencies
-npm install --omit=dev
+# Install production dependencies safely without arbitrary lifecycle scripts
+npm install --omit=dev --ignore-scripts

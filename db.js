@@ -11,7 +11,7 @@ const pool = new Pool({
   port: parseInt(process.env.DB_PORT || '5432', 10),
   database: process.env.DB_NAME || 'cloud_db',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'DevOpsSecure2026!',
+  password: process.env.DB_PASSWORD,
   ssl: sslConfig,
   max: 10,
   idleTimeoutMillis: 30000,

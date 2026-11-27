@@ -6,6 +6,7 @@ const pool = require('./db');
 dotenv.config();
 
 const app = express();
+app.disable('x-powered-by');
 const PORT = process.env.PORT || 5000;
 const APP_NAME = process.env.APP_NAME || 'cloudtask-backend';
 
