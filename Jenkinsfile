@@ -19,7 +19,7 @@ pipeline {
         stage('Verify Health') {
             steps {
                 echo '=== [Stage 3: Verify] Checking live service health ==='
-                bat 'curl -f http://%EC2_HOST%/health'
+                bat 'curl -f https://app.ucmcmcm.fun/health'
             }
         }
     }
